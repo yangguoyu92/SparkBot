@@ -3,8 +3,12 @@ var webhook = require('node-flint/webhook');
 var express = require('express');
 var bodyParser = require('body-parser');
 var app = express();
-var fs = require("fs");
-var redisDriver = require('node-flint/storage/redis');
+var redis = require('redis');
+
+var client = redis.createClient();
+client.on("error", function (err) {
+    console.log("Error " + err);
+});
 
 app.use(bodyParser.json());
 
@@ -21,9 +25,6 @@ var config = {
 // init flint
 var flint = new Flint(config);
 flint.start();
-
-//set redis as storage
-flint.storageDriver(redisDriver('redis://localhost'));
 
 //define help instructions
 flint.hears('/help', function(bot, trigger) {
@@ -42,12 +43,11 @@ flint.hears('/add', function(bot, trigger) {
   var key = array[1];
   array.splice(0, 2);
   var value = array.join(' ');
-  console.log('key: ' + key);
-  console.log('value: '+ value);
   if(key == undefined || value == '') {
     bot.say('Please enter in this format: /add ACI Application Centric Infrastructure');
+  }else {
+    client.set(key, value);
   }
-  bot.store(key, value);
 });
 
 flint.hears('/hello', function(bot, trigger) {
@@ -61,12 +61,14 @@ flint.on('message', function(bot, trigger, id) {
   var prefix = trigger.text.split(' ')[0];
   if(trigger.personEmail != 'acro@sparkbot.io' && prefix != '/add' && prefix != '/help' && prefix != '/hello') {
     var text = trigger.text;
-    var value = bot.recall(text);
-    if(value == undefined) {
-      bot.say('No result. If you want to add this new item to the library, please enter in the format: /add ACI Application Centric Infrastructure');
-    }else {
-      bot.say(value);
-    }
+    client.get(text, function(err, reply) {
+      console.log(err);
+      if(reply == null) {
+        bot.say('No result. If you want to add this new item to the library, please enter in the format: /add ACI Application Centric Infrastructure');
+      }else {
+        bot.say(reply);
+      }
+    });
   }
 });
 
