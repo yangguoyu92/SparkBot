@@ -8,7 +8,7 @@ var redis = require('redis');
 //start redis client
 var client = redis.createClient();
 client.on("error", function (err) {
-    console.log("Error " + err);
+  flint.debug('Redis client error: %s', err);
 });
 
 app.use(bodyParser.json());
@@ -65,14 +65,13 @@ flint.hears('/hello', function(bot, trigger) {
 
 // add flint event listeners
 flint.on('message', function(bot, trigger, id) {
-  //flint.debug('"%s" said "%s" in room "%s"', trigger.personEmail, trigger.text, trigger.roomTitle);
-  console.log('"%s" said "%s" in room "%s"', trigger.personEmail, trigger.text, trigger.roomTitle);
+  flint.debug('"%s" said "%s" in room "%s"', trigger.personEmail, trigger.text, trigger.roomTitle);
+  //console.log('"%s" said "%s" in room "%s"', trigger.personEmail, trigger.text, trigger.roomTitle);
   var prefix = trigger.text.split(' ')[0];
   if(trigger.personEmail != 'acro@sparkbot.io' && prefix != '/add' && prefix != '/help' && prefix != '/hello') {
     var text = trigger.text;
     client.smembers(text, function(err, reply) {
-      console.log('err: ', err);
-      console.log(reply.length);
+      flint.debug('Query error: %s', err);
       if(reply.length == 0) {
         bot.say('No result. If you want to add this new item to the library, please enter in the format: /add ACI Application Centric Infrastructure');
       }else {
@@ -82,18 +81,16 @@ flint.on('message', function(bot, trigger, id) {
   }
 });
 
-flint.on('initialized', function(bot) {
-  //flint.debug('initialized %s rooms', flint.bots.length);
-  console.log('initialized %s rooms', flint.bots.length);
-});
+// flint.on('initialized', function(bot) {
+//   flint.debug('initialized %s rooms', flint.bots.length);
+// });
 
 // define express path for incoming webhooks
 app.post('/flint', webhook(flint));
 
 // start express server
 var server = app.listen(config.port, function () {
-  //flint.debug('Flint listening on port %s', config.port);
-  console.log('Flint listening on port %s', config.port);
+  flint.debug('Flint listening on port %s', config.port);
 });
 
 // gracefully shutdown (ctrl-c)
